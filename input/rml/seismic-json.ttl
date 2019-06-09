@@ -1,0 +1,68 @@
+@prefix rr:     <http://www.w3.org/ns/r2rml#> .
+@prefix rml:    <http://semweb.mmlab.be/ns/rml#> .
+@prefix rdf:    <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix ql:     <http://semweb.mmlab.be/ns/ql#> .
+@prefix carml:  <http://carml.taxonic.com/carml/> .
+@prefix xsd: <http://www.w3.org/2001/XMLSchema#> .
+@prefix : <http://w3id.org/semcon/ns/seismic#> .
+@prefix wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix dcterm: <http://purl.org/dc/terms/> .
+
+<#SeismicMapping>
+    rml:logicalSource [
+        rml:source [
+            a carml:Stream;
+        ];
+        rml:referenceFormulation ql:JSONPath;
+        rml:iterator "$.provision.content.[*]" ;
+    ];
+
+    rr:subjectMap [
+        rr:template "http://w3id.org/semcon/seismic/{sourceId}" ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate :lastUpdate;
+        rr:objectMap [ rml:reference "lastUpdate" ; ];
+        rr:datatype xsd:dateTime ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate :magnitude;
+        rr:objectMap [ rml:reference "magnitude" ; ];
+        rr:datatype xsd:dateTime ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate :magnitudeType;
+        rr:objectMap [ rml:reference "magnitudeType" ; ];
+        rr:datatype xsd:dateTime ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate :auth;
+        rr:objectMap [ rml:reference "auth" ; ];
+        rr:datatype xsd:string ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate :sourceId;
+        rr:objectMap [ rml:reference "sourceId" ; ];
+        rr:datatype xsd:string ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate wgs:alt ;
+        rr:objectMap [ rml:reference "alt" ; ];
+        rr:datatype xsd:float ;
+    ];
+
+    rr:predicateObjectMap [
+        rr:predicate geo:asWKT ;
+        rr:objectMap [
+            carml:multiTemplate "Point(({lat}, {long}))" ;
+            rr:datatype geo:wktLiteral ;
+        ];
+    ];
+.
