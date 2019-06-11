@@ -172,15 +172,15 @@ public class Service {
 
                         // transform into RDF
                         String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
-                        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
-                        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
+//                        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
+//                        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
 
                         // load into dataset
                         Txn.executeWrite(dataset, () -> {
                             dataset.asDatasetGraph().clear();
                             RDFDataMgr.read(dataset, mainFile);
-                            RDFDataMgr.read(dataset, usagePolicy);
-                            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance));
+//                            RDFDataMgr.read(dataset, usagePolicy);
+//                            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance));
                         });
                         log.info("refresh data from the original source is successful");
 
