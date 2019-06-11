@@ -1,9 +1,6 @@
 package id.semantics.sc;
 
-import org.apache.commons.cli.CommandLine;
-import org.apache.commons.cli.CommandLineParser;
-import org.apache.commons.cli.DefaultParser;
-import org.apache.commons.cli.Options;
+import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.jena.fuseki.main.FusekiServer;
@@ -59,7 +56,7 @@ public class Service {
         ontology.close();
 
         if (usePersistence) {
-            dataset = TDB2Factory.assembleDataset("input/fuseki/config.ttl");
+            dataset = TDB2Factory.assembleDataset("./config/fuseki.ttl");
         } else {
             dataset = DatasetFactory.createTxnMem();
         }
@@ -71,23 +68,32 @@ public class Service {
 
         Options options = new Options();
 
-        options.addOption("m", true, "RML mapping file");
-        options.addOption("s", true, "Semantic Container API address");
-        options.addOption("t", true, "Input file type");
-        options.addOption("o", true, "Ontology model");
-        options.addOption("p", false,
-                "If true, the storage is persisted in a TDB storage; otherwise it will be stored in memory");
+        options.addRequiredOption("m", "mapping", true, "RML mapping file");
+        options.addRequiredOption("a", "api", true, "Source (e.g., Semantic Container) API address");
+        options.addRequiredOption("t", "type", true, "Input file type (XML, JSON or CSV)");
+        options.addRequiredOption("o", "ontology", true, "Ontology file of the transformed RDF data");
+        options.addOption("s", false,
+                "If activated, the transformed data will be persisted in a TDB storage; otherwise it will be stored in memory");
 
         CommandLineParser parser = new DefaultParser();
-        CommandLine cmd = parser.parse(options, args);
+        HelpFormatter formatter = new HelpFormatter();
+        CommandLine cmd = null;
+
+        try {
+            cmd = parser.parse(options, args);
+        } catch (ParseException e) {
+            System.out.println(e.getMessage());
+            formatter.printHelp("utility-name", options);
+            System.exit(1);
+        }
 
         String mappingFile = cmd.getOptionValue("m");
-        String containerURI = cmd.getOptionValue("s");
+        String containerURI = cmd.getOptionValue("a");
         String inputFileType = cmd.getOptionValue("t");
         String ontologyFile = cmd.getOptionValue("o");
 
         log.info("starting semantic services");
-        Service service = new Service(mappingFile, ontologyFile, inputFileType, containerURI, cmd.hasOption("p"));
+        Service service = new Service(mappingFile, ontologyFile, inputFileType, containerURI, cmd.hasOption("s"));
         service.establishRoutes();
         log.info("semantic services started!");
     }
@@ -132,6 +138,7 @@ public class Service {
 
         // get the ontology model for the data
         get("/api/sparql/ontology", (request, response) -> {
+
             log.info("api sparql/ontology triggered");
             response.status(200);
             response.type(ContentType.APPLICATION_JSON.toString());
@@ -142,12 +149,13 @@ public class Service {
 
         // query data
         get("/api/sparql/query", (request, response) -> {
-            log.info("api sparql/query triggered");
 
+            log.info("api sparql/query triggered");
             response.status(200);
             response.type(ContentType.APPLICATION_JSON.toString());
             String query = request.queryParams("q");
             log.info("query: " + query);
+
             Boolean refresh = Boolean.parseBoolean(request.queryParams("r")); // option
 
             Txn.execute(dataset, () -> {
@@ -174,6 +182,7 @@ public class Service {
                             RDFDataMgr.read(dataset, usagePolicy);
                             dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance));
                         });
+                        log.info("refresh data from the original source is successful");
 
                     } catch (IOException e) {
                         log.error("error reading new input from sc-container");
