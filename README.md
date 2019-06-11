@@ -26,6 +26,8 @@ and afterwards execute the resulted "fat-jar" with the following options:
   *  -s,                    If activated, the transformed data will be persisted in
                             a TDB storage; otherwise it will be stored in memory
 
+## Running example
+
 A sample working configuration using a semantic container as a backend service would be the following: 
 ```
 java -jar target/srv-rml-1.2.1-SNAPSHOT-jar-with-dependencies.jar \
