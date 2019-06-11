@@ -1,31 +1,35 @@
 package id.semantics.sc;
 
-import org.apache.commons.cli.*;
+import org.apache.commons.cli.CommandLine;
+import org.apache.commons.cli.CommandLineParser;
+import org.apache.commons.cli.DefaultParser;
+import org.apache.commons.cli.Options;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
 import org.apache.jena.fuseki.main.FusekiServer;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
+import org.apache.jena.rdf.model.ModelFactory;
 import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.system.Txn;
+import org.apache.jena.tdb2.TDB2Factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 
-import static spark.Spark.*;
+import static spark.Spark.get;
+import static spark.Spark.port;
 
 public class Service {
 
     private static final Logger log = LoggerFactory.getLogger(Service.class);
 
     private final FusekiServer fusekiServer;
+    private final String provGraph = "http://w3id.org/semcon/ns/ontology#Provenance";
 
     private final Dataset dataset;
     private final String mappingFile;
@@ -33,24 +37,34 @@ public class Service {
     private final String sourceType;
     private final String containerAPI;
 
-    public Service(String mappingFile, String ontologyFile, String inputFileType, String containerURI)
-            throws Exception {
+    public Service(String mappingFile, String ontologyFile, String inputFileType, String containerURI,
+            boolean usePersistence) throws Exception {
 
         sourceType = inputFileType;
         containerAPI = containerURI;
         this.mappingFile = mappingFile;
 
-        dataset = DatasetFactory.createTxnMem();
-        fusekiServer = FusekiServer.create().add("/rdf", dataset).port(3030).build();
-        fusekiServer.start();
+        log.info("sourceType: " + sourceType);
+        log.info("containerAPI: " + containerAPI);
+        log.info("mappingFile: " + this.mappingFile);
+        log.info("ontologyFile: " + ontologyFile);
 
-        Model ontology = RDFDataMgr.loadModel(ontologyFile, Lang.TURTLE);
+        Model ontology = ModelFactory.createDefaultModel();
+        ontology.read(new FileInputStream(ontologyFile), null, Lang.TURTLE.getName());
         StringWriter ontologyWriter = new StringWriter();
         RDFDataMgr.write(ontologyWriter, ontology, Lang.JSONLD);
         ontologyJsonLD = ontologyWriter.toString();
 
         ontologyWriter.close();
         ontology.close();
+
+        if (usePersistence) {
+            dataset = TDB2Factory.assembleDataset("input/fuseki/config.ttl");
+        } else {
+            dataset = DatasetFactory.createTxnMem();
+        }
+        fusekiServer = FusekiServer.create().add("/rdf", dataset).port(3030).build();
+        fusekiServer.start();
     }
 
     public static void main(String[] args) throws Exception {
@@ -61,6 +75,8 @@ public class Service {
         options.addOption("s", true, "Semantic Container API address");
         options.addOption("t", true, "Input file type");
         options.addOption("o", true, "Ontology model");
+        options.addOption("p", false,
+                "If true, the storage is persisted in a TDB storage; otherwise it will be stored in memory");
 
         CommandLineParser parser = new DefaultParser();
         CommandLine cmd = parser.parse(options, args);
@@ -71,19 +87,9 @@ public class Service {
         String ontologyFile = cmd.getOptionValue("o");
 
         log.info("starting semantic services");
-        Service service = new Service(mappingFile, ontologyFile, inputFileType, containerURI);
+        Service service = new Service(mappingFile, ontologyFile, inputFileType, containerURI, cmd.hasOption("p"));
         service.establishRoutes();
         log.info("semantic services started!");
-    }
-
-    private static String readFile(String path, Charset encoding) {
-        byte[] encoded = new byte[0];
-        try {
-            encoded = Files.readAllBytes(Paths.get(path));
-        } catch (IOException e) {
-            log.error("error reading file", e);
-        }
-        return new String(encoded, encoding);
     }
 
     public static SimpleResponse request(String apiURL, String method, String path, String requestBody) {
@@ -135,12 +141,13 @@ public class Service {
         });
 
         // query data
-        post("/api/sparql/query", (request, response) -> {
+        get("/api/sparql/query", (request, response) -> {
             log.info("api sparql/query triggered");
 
             response.status(200);
             response.type(ContentType.APPLICATION_JSON.toString());
             String query = request.queryParams("q");
+            log.info("query: " + query);
             Boolean refresh = Boolean.parseBoolean(request.queryParams("r")); // option
 
             Txn.execute(dataset, () -> {
@@ -156,11 +163,17 @@ public class Service {
                         writer.close();
 
                         // transform into RDF
-                        String turtleString =
-                                Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
+                        String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
+                        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
+                        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
 
                         // load into dataset
-                        Txn.executeWrite(dataset, () -> RDFDataMgr.read(dataset, turtleString));
+                        Txn.executeWrite(dataset, () -> {
+                            dataset.asDatasetGraph().clear();
+                            RDFDataMgr.read(dataset, mainFile);
+                            RDFDataMgr.read(dataset, usagePolicy);
+                            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance));
+                        });
 
                     } catch (IOException e) {
                         log.error("error reading new input from sc-container");

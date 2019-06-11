@@ -17,10 +17,14 @@ import org.eclipse.rdf4j.model.vocabulary.RDF;
 import org.eclipse.rdf4j.model.vocabulary.RDFS;
 import org.eclipse.rdf4j.rio.RDFFormat;
 import org.eclipse.rdf4j.rio.Rio;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.*;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -29,7 +33,7 @@ public class Transformer {
 
     private static final Logger log = LoggerFactory.getLogger(Transformer.class);
 
-    public static void main(String[] args) throws ParseException {
+    public static void main(String[] args) throws ParseException, IOException {
 
         Options options = new Options();
         options.addOption("m", true, "RML mapping file");
@@ -43,8 +47,12 @@ public class Transformer {
         String fileType = cmd.getOptionValue("t");
 
         String result = transform(inputFile, mappingFile, fileType);
+        String prov = extractProvenance(inputFile);
+        String usagePolicy = extractUsagePolicy(inputFile);
 
         log.info("resulted file: " + result);
+        log.info("resulted prov: " + readFile(prov, Charset.defaultCharset()));
+        log.info("resulted usage: " + readFile(usagePolicy, Charset.defaultCharset()));
     }
 
     /**
@@ -116,15 +124,53 @@ public class Transformer {
         is.close();
         instances.close();
 
+        // add provenance model
+
         // create a temp file and return jena model
         File file = File.createTempFile("temp", ".ttl");
         OutputStream tempOutput = new FileOutputStream(file);
         Rio.write(sesameModel, tempOutput, RDFFormat.TURTLE); // write mapping
         sesameModel.clear();
-        tempOutput.flush();
         tempOutput.close();
 
         return file;
+    }
+
+    private static String readFile(String path, Charset encoding) {
+        byte[] encoded = new byte[0];
+        try {
+            encoded = Files.readAllBytes(Paths.get(path));
+        } catch (IOException e) {
+            log.error("error reading file", e);
+        }
+        return new String(encoded, encoding);
+    }
+
+    public static String extractProvenance(String inputFile) throws IOException {
+
+        JSONObject object = new JSONObject(readFile(inputFile, Charset.forName("UTF-8")));
+        String provenance = object.getJSONObject("provision").getString("provenance");
+
+        File file = File.createTempFile("temp", ".ttl");
+        file.deleteOnExit();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+        writer.write(provenance);
+        writer.close();
+
+        return file.getAbsolutePath();
+    }
+
+    public static String extractUsagePolicy(String inputFile) throws IOException {
+        JSONObject object = new JSONObject(readFile(inputFile, Charset.forName("UTF-8")));
+        String provenance = object.getJSONObject("provision").getString("usage-policy");
+
+        File file = File.createTempFile("temp", ".trig");
+        file.deleteOnExit();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(file));
+        writer.write(provenance);
+        writer.close();
+
+        return file.getAbsolutePath();
     }
 
     private static Map<String, String> getPrefixes() {

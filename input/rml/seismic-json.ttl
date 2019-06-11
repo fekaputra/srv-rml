@@ -23,6 +23,11 @@
     ];
 
     rr:predicateObjectMap [
+        rr:predicate rdf:type;
+        rr:objectMap [ rr:template "http://w3id.org/semcon/ns/seismic#SeismicActivity" ];
+    ];
+
+    rr:predicateObjectMap [
         rr:predicate :lastUpdate;
         rr:objectMap [ rml:reference "lastUpdate" ; ];
         rr:datatype xsd:dateTime ;
