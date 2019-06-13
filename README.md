@@ -7,28 +7,30 @@ The tool utilize caRML library and the supplied RML mappings to transform the da
 and expose it using embedded Jena Fuseki with options to make it persistent/non-persistent.
 When srv-rml runs, it will open three API functions in the localhost: 
 
-* GET `/api/sparql/status`: to check whether the system is running
-* GET `/api/sparql/ontology`: to get the ontology model supplied to the system
-* GET `/api/sparql/query`: to run a sparql query on the data and get the query result in JSON
-  * the function will need two parameters: query (q) and refresh (r)
-  * query (q) would be a working sparql select query, and
-  * refresh (r) would be true or false, which is an option to refresh the data from API.
+* GET `/api/sparql/status`: to check whether the system is running and from which API the current data is coming. 
+* GET `/api/sparql/ontology`: to get the ontology model supplied to the system. 
+* GET `/api/sparql/query`: to run a sparql query on the data and get the query result in JSON. 
+  * the function accepts three parameters: query (q), api-address (a), and refresh (r) 
+  * query(q): A SPARQL select query (default to `SELECT * WHERE {?a ?b ?c} LIMIT 10`)
+  * api-address(a):  If added, it will change the source API of the data (default)
+  * refresh(r): "true" or "false", which is an option to refresh the data from API.
 
 To run it, you need to compile it using maven (`mvn clean install`), 
 and afterwards execute the resulted "fat-jar" with the following options: 
 
 * required options: m, a, t, o
 * usage: utility-name
-  *  -a, --api <arg>,       Source (e.g., Semantic Container) API address
-  *  -m, --mapping <arg>,   RML mapping file
-  *  -o, --ontology <arg>,  Ontology model of the transformed RDF data
-  *  -t, --type <arg>,      Input file type (XML, JSON or CSV
-  *  -s,                    If activated, the transformed data will be persisted in
-                            a TDB storage; otherwise it will be stored in memory
+  *  **-m, --mapping <arg>**,   RML mapping file
+  *  **-a, --api <arg>**,       Source (e.g., Semantic Container) API address
+  *  **-t, --type <arg>**,      Input file type (XML, JSON or CSV
+  *  **-o, --ontology <arg>**,  Ontology model of the transformed RDF data
+  *  **-s,**                    (Optional) If activated, the transformed data will be persisted in
+                                a TDB storage; otherwise it will be stored in memory
 
-## Running example
+## A Running example for Seismic data from Semantic Container!
 
-A sample working configuration using a semantic container as a backend service would be the following: 
+A sample working configuration using a semantic container that provides data from [ZAMG](http://zamg.ac.at/) 
+as a backend service would be the following: 
 ```
 java -jar target/srv-rml-1.2.1-SNAPSHOT-jar-with-dependencies.jar \
 	-m "sample-input/rml/seismic-json.ttl" \
@@ -36,11 +38,36 @@ java -jar target/srv-rml-1.2.1-SNAPSHOT-jar-with-dependencies.jar \
 	-t "json" \
 	-o "sample-input/ontologies/seismic.ttl" 
 ```
+The stated API address `https://vownyourdata.zamg.ac.at:9500/api/data?duration=1` will provide us with seismic data 
+from the last day all over the world. 
 
-After the tool started, you can execute all three API functions.
 
-As a running example, let's take an example query to get all instances of the seismic activity from a seismic container 
-(the ontology provided in the `./sample-input` folder): 
+After the tool started, you can execute all three API functions (the default port would be 2806).
+
+### GET `/api/sparql/status`
+CURL statement: `curl -X GET  http://localhost:2806/api/sparql/status`   
+
+The service will provides you a message on the service status, similar to the following:     
+  `the SPARQL service is running on data from API address: https://vownyourdata.zamg.ac.at:9500/api/data?duration=1` 
+
+### GET `/api/sparql/ontology` 
+CURL statement: `curl -X GET  http://localhost:2806/api/sparql/ontology`
+
+The service will return you the ontology file provided in the initialization (-o): [seismic.ttl](https://github.com/fekaputra/srv-rml/blob/semcon/sample-input/ontologies/seismic.ttl)
+
+### GET `/api/sparql/query`
+
+#### Default query & parameters
+If you run the query without any parameter, by default the parameter would be the following: 
+* **query(q)**: `SELECT * WHERE {?a ?b ?c} LIMIT 10`
+* **api-address(a)**: the existing API address (or the initial API address if you never changed it before)
+* **refresh(r)**: false 
+
+CURL statement: `curl -X GET  http://localhost:2806/api/sparql/query`
+
+#### Other query with parameters
+
+Let's take an example query to get all instances of the seismic activity 
 ```
 PREFIX scs: <http://w3id.org/semcon/ns/seismic#>
 SELECT * 
@@ -49,7 +76,14 @@ WHERE {
 }
 ```
 
-To run the query you need to url-encode the query and put it in a CURL call to get query results in JSON: 
+* If you wants the seimic data from last 7 days instead of just the default 1    
+`https://vownyourdata.zamg.ac.at:9500/api/data?duration=7`
+
+* To run the query you need to url-encode the query and put it together with other parameters in a CURL call 
+to get query results in JSON as the following:    
 `
-curl -X GET 'http://localhost:2806/api/sparql/query?q=PREFIX%20scs%3A%20%3Chttp%3A%2F%2Fw3id.org%2Fsemcon%2Fns%2Fseismic%23%3E%0ASELECT%20%2A%20%0AWHERE%20%7B%0A%20%20%3Factivity%20a%20scs%3ASeismicActivity%0A%7D&r=true'
+curl -X GET \
+  'http://localhost:2806/api/sparql/query?r=true&a=https://vownyourdata.zamg.ac.at:9500/api/data?duration=7&q=PREFIX%20scs%3A%20%3Chttp%3A%2F%2Fw3id.org%2Fsemcon%2Fns%2Fseismic%23%3E%0ASELECT%20%2A%20%0AWHERE%20%7B%0A%20%20%3Factivity%20a%20scs%3ASeismicActivity%0A%7D'
 `
+* If afterwards you check the status, you'll see the following message showing the current API address:     
+`the SPARQL service is running on data from API address: https://vownyourdata.zamg.ac.at:9500/api/data?duration=7`
