@@ -33,12 +33,12 @@ and afterwards execute the resulted "fat-jar" with the following options:
 A sample working configuration using a semantic container that provides data from [ZAMG](http://zamg.ac.at/) 
 as a backend service would be the following: 
 ```
-java -jar target/srv-rml-1.2.1-SNAPSHOT-jar-with-dependencies.jar \
+java -jar target/srv-rml-1.3.0-SNAPSHOT-jar-with-dependencies.jar \
 	-m "sample-input/rml/seismic-json.ttl" \
 	-a "https://vownyourdata.zamg.ac.at:9500/api/data?duration=1" \
 	-t "json" \
 	-o "sample-input/ontologies/seismic.ttl" \
-	-t "sample-input/shacl/seismic-shacl.ttl" \
+	-c "sample-input/shacl/seismic-shacl.ttl" \
 ```
 The stated API address `https://vownyourdata.zamg.ac.at:9500/api/data?duration=1` will provide us with seismic data 
 from the last day all over the world. 
