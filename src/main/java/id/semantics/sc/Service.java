@@ -13,6 +13,8 @@ import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.topbraid.shacl.validation.ValidationUtil;
+import org.topbraid.shacl.vocabulary.SH;
 import spark.Response;
 
 import java.io.*;
@@ -32,17 +34,19 @@ public class Service {
     private final String defaultQuery = "SELECT * WHERE {?a ?b ?c} LIMIT 10";
 
     private final Dataset dataset;
+    private final Model shaclFile;
     private final String mappingFile;
     private final String ontologyJsonLD;
     private final String sourceType;
     private String sourceAPI; // in default, the API is not initialized
 
-    public Service(String mappingFile, String ontologyFile, String sourceType, String sourceAPI,
+    public Service(String mappingFile, String ontologyFile, String sourceType, String sourceAPI, String shaclFile,
             boolean usePersistence) throws Exception {
 
         this.sourceType = sourceType;
         this.mappingFile = mappingFile;
         this.sourceAPI = sourceAPI;
+        this.shaclFile = RDFDataMgr.loadModel(shaclFile);
 
         log.info("sourceType: " + sourceType);
         log.info("mappingFile: " + mappingFile);
@@ -72,10 +76,12 @@ public class Service {
 
         Options options = new Options();
 
-        options.addRequiredOption("m", "mapping", true, "RML mapping file");
+        options.addRequiredOption("m", "mapping", true, "RML mapping file in TURTLE format");
         options.addRequiredOption("a", "api", true, "Original Source (e.g., Semantic Container) API address");
         options.addRequiredOption("t", "type", true, "Input file type (XML, JSON or CSV)");
-        options.addRequiredOption("o", "ontology", true, "Ontology file of the transformed RDF data");
+        options.addRequiredOption("o", "ontology", true,
+                "Ontology file of the transformed RDF data in TURTLE format");
+        options.addRequiredOption("c", "constraint", true, "SHACL constraints file in TURTLE format");
         options.addOption("s", false,
                 "If activated, the transformed data will be persisted in a TDB storage; otherwise it will be stored in memory");
 
@@ -95,9 +101,11 @@ public class Service {
         String apiAddress = cmd.getOptionValue("a");
         String inputFileType = cmd.getOptionValue("t");
         String ontologyFile = cmd.getOptionValue("o");
+        String shaclFile = cmd.getOptionValue("c");
 
         log.info("starting semantic services");
-        Service service = new Service(mappingFile, ontologyFile, inputFileType, apiAddress, cmd.hasOption("s"));
+        Service service =
+                new Service(mappingFile, ontologyFile, inputFileType, apiAddress, shaclFile, cmd.hasOption("s"));
         service.establishRoutes();
         log.info("semantic services started!");
     }
@@ -211,6 +219,14 @@ public class Service {
                 RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
                 dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
             });
+
+            Model result = ValidationUtil.validateModel(dataset.getDefaultModel(), shaclFile, false).getModel();
+            if (result.contains(null, SH.conforms, result.createTypedLiteral(false))) {
+                throw new Exception("extracted data is not conform to SHACL constraints");
+            } else {
+                log.info("data validation with SHACL is successful");
+            }
+
             log.info("refresh data from the original source is successful");
 
         } catch (Exception e) {

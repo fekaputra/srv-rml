@@ -20,10 +20,11 @@ and afterwards execute the resulted "fat-jar" with the following options:
 
 * required options: m, a, t, o
 * usage: utility-name
-  *  **-m, --mapping <arg>**,   RML mapping file
+  *  **-m, --mapping <arg>**,   RML mapping file in TURTLE format
   *  **-a, --api <arg>**,       Source (e.g., Semantic Container) API address
   *  **-t, --type <arg>**,      Input file type (XML, JSON or CSV
   *  **-o, --ontology <arg>**,  Ontology model of the transformed RDF data
+  *  **-c, --constraint <arg>**, SHACL constraints file in TURTLE format
   *  **-s,**                    (Optional) If activated, the transformed data will be persisted in
                                 a TDB storage; otherwise it will be stored in memory
 
@@ -36,7 +37,8 @@ java -jar target/srv-rml-1.2.1-SNAPSHOT-jar-with-dependencies.jar \
 	-m "sample-input/rml/seismic-json.ttl" \
 	-a "https://vownyourdata.zamg.ac.at:9500/api/data?duration=1" \
 	-t "json" \
-	-o "sample-input/ontologies/seismic.ttl" 
+	-o "sample-input/ontologies/seismic.ttl" \
+	-t "sample-input/shacl/seismic-shacl.ttl" \
 ```
 The stated API address `https://vownyourdata.zamg.ac.at:9500/api/data?duration=1` will provide us with seismic data 
 from the last day all over the world. 
