@@ -11,6 +11,7 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.topbraid.shacl.validation.ValidationUtil;
@@ -20,12 +21,14 @@ import spark.Response;
 import java.io.*;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Set;
 
-import static spark.Spark.get;
-import static spark.Spark.port;
+import static spark.Spark.*;
 
 public class Service {
+
+    public static final String QUERY_PARAM = "q";
+    public static final String API_PARAM = "a";
+    public static final String REFRESH_PARAM = "r";
 
     private static final Logger log = LoggerFactory.getLogger(Service.class);
 
@@ -74,6 +77,23 @@ public class Service {
 
     public static void main(String[] args) throws Exception {
 
+        CommandLine cmd = parseCMD(args);
+
+        String mappingFile = cmd.getOptionValue("m");
+        String apiAddress = cmd.getOptionValue("a");
+        String inputFileType = cmd.getOptionValue("t");
+        String ontologyFile = cmd.getOptionValue("o");
+        String shaclFile = cmd.getOptionValue("c");
+
+        log.info("starting semantic services");
+        Service service =
+                new Service(mappingFile, ontologyFile, inputFileType, apiAddress, shaclFile, cmd.hasOption("s"));
+        service.establishRoutes();
+        log.info("semantic services started!");
+    }
+
+    public static CommandLine parseCMD(String[] args) {
+
         Options options = new Options();
 
         options.addRequiredOption("m", "mapping", true, "RML mapping file in TURTLE format");
@@ -97,17 +117,7 @@ public class Service {
             System.exit(1);
         }
 
-        String mappingFile = cmd.getOptionValue("m");
-        String apiAddress = cmd.getOptionValue("a");
-        String inputFileType = cmd.getOptionValue("t");
-        String ontologyFile = cmd.getOptionValue("o");
-        String shaclFile = cmd.getOptionValue("c");
-
-        log.info("starting semantic services");
-        Service service =
-                new Service(mappingFile, ontologyFile, inputFileType, apiAddress, shaclFile, cmd.hasOption("s"));
-        service.establishRoutes();
-        log.info("semantic services started!");
+        return cmd;
     }
 
     public static SimpleResponse request(String apiURL, String method, String path, String requestBody) {
@@ -159,39 +169,78 @@ public class Service {
             return ontologyJsonLD;
         });
 
-        // query data
+        // query data with post
         get("/api/sparql/query", (request, response) -> {
 
             long start = System.currentTimeMillis();
-            log.info("api sparql/query triggered");
+            log.info("GET api sparql/query triggered");
             response.status(200);
             response.type(ContentType.APPLICATION_JSON.toString());
-            Set<String> params = request.queryParams();
-
-            String query = request.queryParamOrDefault("q", defaultQuery);
-            String apiAddress = request.queryParamOrDefault("a", sourceAPI);
-            Boolean refresh = Boolean.parseBoolean(request.queryParamOrDefault("r", "false")); // option
-
-            log.info("query: " + query);
-            log.info("api: " + apiAddress);
-            log.info("data-refresh: " + refresh);
-
-            Txn.execute(dataset, () -> {
-                if ((dataset.getDefaultModel().isEmpty() // empty dataset
-                        || !sourceAPI.equals(apiAddress) // if the api source is different
-                        || refresh) // if users asks for refresh
-                        && dataset.promote()) { // if it's possible to update the data
-                    sourceAPI = apiAddress;
-                    updateDataset(sourceAPI, response);
-                }
-            });
-
-            Txn.executeRead(dataset, () -> {
-                readDataset(query, response);
-            });
             log.info("api sparql/query finished in " + (System.currentTimeMillis() - start) + " ms");
 
+            try {
+                String query = request.queryParamOrDefault(QUERY_PARAM, defaultQuery);
+                String apiAddress = request.queryParamOrDefault(API_PARAM, sourceAPI);
+                Boolean refresh =
+                        Boolean.parseBoolean(request.queryParamOrDefault(REFRESH_PARAM, "false")); // optional
+
+                queryProcessing(query, apiAddress, refresh, response);
+            } catch (Exception e) {
+                log.error("error executing query", e);
+                response.body(e.getMessage());
+            }
+
             return response.body();
+        });
+
+        // query data
+        post("/api/sparql/query-p", (request, response) -> {
+
+            // default response
+            response.status(500);
+            response.type("application/json");
+
+            String body = request.body();
+            log.info(request.headers().toString());
+            log.info(body);
+
+            try {
+                JSONObject rootObject = new JSONObject(body);
+                String query = rootObject.has(QUERY_PARAM) ? rootObject.getString(QUERY_PARAM) : defaultQuery;
+                String apiAddress = rootObject.has(API_PARAM) ? rootObject.getString(API_PARAM) : sourceAPI;
+                Boolean refresh =
+                        rootObject.has(REFRESH_PARAM) ? Boolean.parseBoolean(rootObject.getString(REFRESH_PARAM)) :
+                                Boolean.FALSE;
+
+                queryProcessing(query, apiAddress, refresh, response);
+                response.status(200);
+            } catch (Exception e) {
+                log.error("error executing query", e);
+                response.body(e.getMessage());
+            }
+
+            return response.body();
+        });
+    }
+
+    private void queryProcessing(String query, String apiAddress, Boolean refresh, Response response) {
+
+        log.info("query: " + query);
+        log.info("api: " + apiAddress);
+        log.info("data-refresh: " + refresh);
+
+        Txn.execute(dataset, () -> {
+            if ((dataset.getDefaultModel().isEmpty() // empty dataset
+                    || !sourceAPI.equals(apiAddress) // if the api source is different
+                    || refresh) // if users asks for refresh
+                    && dataset.promote()) { // if it's possible to update the data
+                sourceAPI = apiAddress;
+                updateDataset(sourceAPI, response);
+            }
+        });
+
+        Txn.executeRead(dataset, () -> {
+            readDataset(query, response);
         });
     }
 
@@ -239,9 +288,19 @@ public class Service {
 
         log.info("query data from fuseki is started");
         try (QueryExecution qExec = QueryExecutionFactory.create(query, dataset)) {
-            ResultSet rs = qExec.execSelect();
+
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-            ResultSetFormatter.outputAsJSON(outputStream, rs);
+            String queryLower = query.toLowerCase();
+            if (queryLower.contains("select")) {
+                ResultSet rs = qExec.execSelect();
+                ResultSetFormatter.outputAsJSON(outputStream, rs);
+            } else if (queryLower.contains("construct") || queryLower.contains("describe")) {
+                Model model = qExec.execConstruct();
+                RDFDataMgr.write(outputStream, model, Lang.JSONLD);
+            } else {
+                log.error("ERROR Parsing Query");
+            }
+
             try {
                 String result = outputStream.toString("UTF-8");
                 response.body(result);
