@@ -1,5 +1,7 @@
 # srv-rml: exposing API data as read-only SPARQL endpoint
 
+_**Version 1.3.0**_
+
 This tool allows users to expose structured data (i.e., JSON, CSV, XML) 
 collected from a REST API to be exposed as SPARQL endpoint. 
 
@@ -7,14 +9,37 @@ The tool utilize caRML library and the supplied RML mappings to transform the da
 and expose it using embedded Jena Fuseki with options to make it persistent/non-persistent.
 When srv-rml runs, it will open three API functions in the localhost: 
 
-* GET `/api/sparql/status`: to check whether the system is running and from which API the current data is coming. 
-* GET `/api/sparql/ontology`: to get the ontology model supplied to the system. 
-* GET `/api/sparql/query`: to run a sparql query on the data and get the query result in JSON. 
+* **GET** `/api/sparql/status`: to check whether the system is running and from which API the current data is coming. 
+* **GET** `/api/sparql/ontology`: to get the ontology model supplied to the system. 
+* **GET** `/api/sparql/query`: to run a sparql query on the data and get the query result in JSON (SELECT) or JSON-LD (CONSTRUCT). 
   * the function accepts three parameters: query (q), api-address (a), and refresh (r) 
   * query(q): A SPARQL select query (default to `SELECT * WHERE {?a ?b ?c} LIMIT 10`)
   * api-address(a):  If added, it will change the source API of the data (default)
   * refresh(r): "true" or "false", which is an option to refresh the data from API.
-
+* **POST** `/api/sparql/query-p`: to run a sparql query on the data and get the query result in JSON (SELECT) or JSON-LD (CONSTRUCT). 
+  * the function accepts three parameters in JSON: query (q), api-address (a), and refresh (r) 
+  * query(q): A SPARQL select query (default to `SELECT * WHERE {?a ?b ?c} LIMIT 10`)
+  * api-address(a):  If added, it will change the source API of the data (default)
+  * refresh(r): "true" or "false", which is an option to refresh the data from API.
+  * example valid post parameters: 
+    ```
+    {
+        "r": "true" ,
+        "q": "select * where {?s a ?o}" ,
+        "a": "https://vownyourdata.zamg.ac.at:9500/api/data?duration=7"
+    }
+    ``` 
+    ```
+    {
+        "r": "false" ,
+        "q": "construct where {?s a ?o}"
+    }
+    ```
+    ```
+    {
+    }
+    ```
+  
 To run it, you need to compile it using maven (`mvn clean install`), 
 and afterwards execute the resulted "fat-jar" with the following options: 
 
