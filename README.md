@@ -114,3 +114,47 @@ curl -X GET \
 `
 * If afterwards you check the status, you'll see the following message showing the current API address:     
 `the SPARQL service is running on data from API address: https://vownyourdata.zamg.ac.at:9500/api/data?duration=7`
+
+### POST `/api/sparql/query-p`
+
+#### Default query & parameters
+If you run the query without any parameter, by default the parameter would be the following: 
+* **query(q)**: `SELECT * WHERE {?a ?b ?c} LIMIT 10`
+* **api-address(a)**: the existing API address (or the initial API address if you never changed it before)
+* **refresh(r)**: false 
+
+CURL statement: 
+``` 
+curl -X POST \
+  http://localhost:2806/api/sparql/query-p \
+  -H 'Content-Type: application/json' \
+  -d '{}'
+```
+
+#### Other query with parameters
+
+Let's take an example query to get all instances of the seismic activity 
+```
+PREFIX scs: <http://w3id.org/semcon/ns/seismic#>
+SELECT * 
+WHERE {
+  ?activity a scs:SeismicActivity
+}
+```
+* If you wants the seimic data from last 7 days instead of just the default 1    
+`https://vownyourdata.zamg.ac.at:9500/api/data?duration=7`
+
+* To run the query you need to url-encode the query and put it together with other parameters in a CURL call 
+to get query results in JSON as the following:    
+```
+curl -X POST \
+  http://localhost:2806/api/sparql/query-p \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "r": "true" ,
+    "q": "PREFIX scs: <http://w3id.org/semcon/ns/seismic#> SELECT * WHERE { ?activity a scs:SeismicActivity }" ,
+    "a": "https://vownyourdata.zamg.ac.at:9500/api/data?duration=7"
+}'
+```
+* If afterwards you check the status, you'll see the following message showing the current API address:     
+`the SPARQL service is running on data from API address: https://vownyourdata.zamg.ac.at:9500/api/data?duration=7`
