@@ -1,6 +1,6 @@
 # srv-rml: exposing API data as read-only SPARQL endpoint
 
-_**Version 1.3.0**_
+_**Version 1.4.0-SNAPSHOT**_
 
 This tool allows users to expose structured data (i.e., JSON, CSV, XML) 
 collected from a REST API to be exposed as SPARQL endpoint. 
