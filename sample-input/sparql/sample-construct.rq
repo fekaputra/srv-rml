@@ -1,0 +1,5 @@
+{
+    "r": "true" ,
+    "q": "construct where {?s a ?o}" ,
+    "a": "https://vownyourdata.zamg.ac.at:9500/api/data?duration=7"
+}
