@@ -272,11 +272,13 @@ public class Service {
             writer.write(simpleResponse.body);
             writer.flush();
             writer.close();
+            log.info("get data from sourceAPI: finished");
 
             // transform into RDF
             String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
             String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
             String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
+            log.info("transform into RDF: finished");
 
             // load into dataset
             Txn.executeWrite(dataset, () -> {
@@ -284,6 +286,7 @@ public class Service {
                 RDFDataMgr.read(dataset, mainFile); // add to default graph
                 RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
                 dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
+                log.info("load RDF into dataset: finished");
             });
 
             Model result = ValidationUtil.validateModel(dataset.getDefaultModel(), shaclFile, false).getModel();
@@ -297,6 +300,7 @@ public class Service {
 
         } catch (Exception e) {
             log.error("error reading new input from API source");
+            log.error("error message: "+e.getMessage());
             response.body(e.getMessage());
         }
     }

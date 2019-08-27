@@ -86,7 +86,8 @@ public class Transformer {
         }
 
         try {
-            mapper = RmlMapper.newBuilder().setLogicalSourceResolver(iri, resolver).build();
+            mapper = RmlMapper.newBuilder().setLogicalSourceResolver(iri, resolver).addFunctions(new CarmlFunctions())
+                    .build();
             File file = parse(inputFile, mappingFile, mapper);
             rdfFile = file.getAbsolutePath();
 

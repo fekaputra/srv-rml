@@ -3,6 +3,10 @@ package id.semantics.sc.test;
 import id.semantics.sc.Service;
 import id.semantics.sc.Service.SimpleResponse;
 import org.apache.commons.io.IOUtils;
+import org.apache.jena.query.QueryExecution;
+import org.apache.jena.query.QueryExecutionFactory;
+import org.apache.jena.query.ResultSet;
+import org.apache.jena.query.ResultSetFormatter;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -22,6 +26,7 @@ import static spark.Spark.stop;
 
 public class TestService {
     public static final String SERVICE_URL = "http://localhost:2806";
+    public static final String FUSEKI_URL = "http://localhost:3030";
 
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
 
@@ -37,6 +42,7 @@ public class TestService {
         strings.add("https://vownyourdata.zamg.ac.at:9500/api/data?duration=1");
         strings.add("-c");
         strings.add("sample-input/shacl/seismic-shacl.ttl");
+        strings.add("-s");
         Service.main(strings.toArray(new String[0]));
         awaitInitialization();
 
@@ -85,6 +91,16 @@ public class TestService {
         SimpleResponse res = request(SERVICE_URL, "POST", testUrl, selectQueryString);
         assertEquals(200, res.status);
         log.info(res.toString());
+    }
+
+    @Test public void testQueryEndpoint() throws IOException {
+        String testUrl = "/rdf/query";
+        String selectQueryString = "select * where {?s a ?o}";
+
+        QueryExecution qe = QueryExecutionFactory.sparqlService(FUSEKI_URL + testUrl, selectQueryString);
+        ResultSet rs = qe.execSelect();
+
+        log.info("query result: " + ResultSetFormatter.asText(rs));
     }
 
 }
