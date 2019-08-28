@@ -1,0 +1,46 @@
+@prefix sh: <http://www.w3.org/ns/shacl#> .
+@prefix scs: <http://w3id.org/semcon/ns/seismic#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix geo: <http://www.opengis.net/ont/geosparql#> .
+@prefix wgs: <http://www.w3.org/2003/01/geo/wgs84_pos#> .
+
+scs:SeismicDataValidation
+        a               sh:NodeShape ;
+        sh:closed       true ;
+        sh:description  "Seismic Data Validation" ;
+        sh:name         "Seismic Data Validation" ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      rdf:type
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      scs:lastUpdate
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  0 ;
+                          sh:path      scs:magnitude
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  0 ;
+                          sh:path      scs:magnitudeType
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  0 ;
+                          sh:path      scs:auth
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      scs:sourceId
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      wgs:alt
+                        ] ;
+        sh:property     [ sh:maxCount  1 ;
+                          sh:minCount  1 ;
+                          sh:path      geo:asWKT
+                        ] ;
+        sh:targetClass  scs:SeismicActivity .

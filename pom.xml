@@ -6,7 +6,7 @@
 
     <groupId>id.semantics.semcon</groupId>
     <artifactId>srv-rml</artifactId>
-    <version>1.2.2-SNAPSHOT</version>
+    <version>1.4.0</version>
 
     <build>
         <plugins>
@@ -71,6 +71,7 @@
         <slf4j.version>1.7.26</slf4j.version>
         <json.version>20180130</json.version>
         <commons-lang3.version>3.9</commons-lang3.version>
+        <shacl.version>1.1.0</shacl.version>
     </properties>
 
     <dependencies>
@@ -106,6 +107,13 @@
             <groupId>org.apache.jena</groupId>
             <artifactId>jena-fuseki-main</artifactId>
             <version>${jena.version}</version>
+        </dependency>
+
+        <!-- TopBraid SHACL Engine -->
+        <dependency>
+            <groupId>org.topbraid</groupId>
+            <artifactId>shacl</artifactId>
+            <version>${shacl.version}</version>
         </dependency>
 
         <!-- CARML dependencies -->
