@@ -20,11 +20,11 @@ PREFIX ja:      <http://jena.hpl.hp.com/2005/11/Assembler#>
     fuseki:serviceQuery     "sparql" ;
     fuseki:dataset          <#tdb_dataset_readwrite> ;
 
-    fuseki:serviceQuery             "query" ;
-    #fuseki:serviceUpdate            "update" ;
-    #fuseki:serviceUpload            "upload" ;
-    #fuseki:serviceReadWriteGraphStore      "data" ;
-    #fuseki:serviceReadGraphStore    "get" ;
+    fuseki:serviceQuery                 "query" ;
+    fuseki:serviceReadWriteGraphStore   "data" ;
+    fuseki:serviceReadGraphStore        "get" ;
+    #fuseki:serviceUpdate               "update" ;
+    #fuseki:serviceUpload               "upload" ;
 .
 
 <#tdb_dataset_readwrite> a tdb2:DatasetTDB2 ;
