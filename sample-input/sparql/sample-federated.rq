@@ -1,0 +1,21 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+PREFIX : <http://w3id.org/semcon/ns/ontology#>
+
+SELECT ?itemLabel (group_concat(?genreLabel;separator="|") as ?genreLabels) (sample(?_image) as ?imageSample)
+WHERE {
+    ?artist a :Artist ;
+        rdfs:label ?itemLabel .
+
+    SERVICE <https://query.wikidata.org/sparql> {
+      ?item wdt:P136 ?genre .
+      ?item rdfs:label ?itemLabel .
+      ?genre wdt:P31 wd:Q188451 .
+      OPTIONAL { ?genre rdfs:label ?genreLabel . FILTER ( lang(?genreLabel)="en" ) }
+      OPTIONAL { ?item wdt:P18 ?_image. }
+    }
+}
+GROUP BY ?itemLabel

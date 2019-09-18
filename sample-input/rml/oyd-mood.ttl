@@ -1,0 +1,23 @@
+<#MoodMapping> <http://semweb.mmlab.be/ns/rml#logicalSource> [
+    <http://semweb.mmlab.be/ns/rml#iterator> "$.provision.content.[*]";
+    <http://semweb.mmlab.be/ns/rml#referenceFormulation> <http://semweb.mmlab.be/ns/ql#JSONPath>;
+    <http://semweb.mmlab.be/ns/rml#source> [a <http://carml.taxonic.com/carml/Stream>]
+    ];
+    <http://www.w3.org/ns/r2rml#predicateObjectMap> [
+    <http://www.w3.org/ns/r2rml#objectMap> [
+    <http://semweb.mmlab.be/ns/rml#reference> "mood";
+    <http://www.w3.org/ns/r2rml#datatype> <http://www.w3.org/2001/XMLSchema#integer>
+    ];
+    <http://www.w3.org/ns/r2rml#predicate> <http://w3id.org/semcon/ns/ontology#mood>
+    ], [
+    <http://www.w3.org/ns/r2rml#objectMap> [
+    <http://semweb.mmlab.be/ns/rml#reference> "timestamp";
+    <http://www.w3.org/ns/r2rml#datatype> <http://www.w3.org/2001/XMLSchema#long>
+    ];
+    <http://www.w3.org/ns/r2rml#predicate> <http://w3id.org/semcon/ns/ontology#timestamp>
+    ];
+    <http://www.w3.org/ns/r2rml#subjectMap> [
+    <http://www.w3.org/ns/r2rml#class> <http://w3id.org/semcon/ns/ontology#OydMood>;
+    <http://www.w3.org/ns/r2rml#template> "http://w3id.org/semcon/id/oyd-mood/{timestamp}"
+    ];
+.
