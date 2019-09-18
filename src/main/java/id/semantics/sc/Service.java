@@ -73,6 +73,8 @@ public class Service {
 
         fusekiServer = FusekiServer.create().add("/rdf", dataset).port(3030).build();
         fusekiServer.start();
+
+        updateDataset(sourceAPI);
     }
 
     public static void main(String[] args) throws Exception {
@@ -265,44 +267,53 @@ public class Service {
 
         log.info("refresh data from the original source is started");
         try {
-            // get data from sourceAPI
-            SimpleResponse simpleResponse = request(api, "GET", "", "");
-            File tempFile = File.createTempFile("temp", ".tmp");
-            FileWriter writer = new FileWriter(tempFile);
-            writer.write(simpleResponse.body);
-            writer.flush();
-            writer.close();
-            log.info("get data from sourceAPI: finished");
-
-            // transform into RDF
-            String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
-            String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
-            String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
-            log.info("transform into RDF: finished");
-
-            // load into dataset
-            Txn.executeWrite(dataset, () -> {
-                dataset.asDatasetGraph().clear();
-                RDFDataMgr.read(dataset, mainFile); // add to default graph
-                RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
-                dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
-                log.info("load RDF into dataset: finished");
-            });
-
-            Model result = ValidationUtil.validateModel(dataset.getDefaultModel(), shaclFile, false).getModel();
-            if (result.contains(null, SH.conforms, result.createTypedLiteral(false))) {
-                throw new Exception("extracted data is not conform to SHACL constraints");
-            } else {
-                log.info("data validation with SHACL is successful");
-            }
-
-            log.info("refresh data from the original source is successful");
+            updateDataset(api);
 
         } catch (Exception e) {
             log.error("error reading new input from API source");
-            log.error("error message: "+e.getMessage());
+            log.error("error message: " + e.getMessage());
             response.body(e.getMessage());
         }
+    }
+
+    private void updateDataset(String api) throws Exception {
+
+        log.info("refresh data from the original source is started");
+
+        // get data from sourceAPI
+        SimpleResponse simpleResponse = request(api, "GET", "", "");
+        File tempFile = File.createTempFile("temp", ".tmp");
+        FileWriter writer = new FileWriter(tempFile);
+        writer.write(simpleResponse.body);
+        writer.flush();
+        writer.close();
+        log.info("get data from sourceAPI: finished");
+
+        // transform into RDF
+        String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
+        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
+        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
+        log.info("transform into RDF: finished");
+
+        // load into dataset
+        Txn.executeWrite(dataset, () -> {
+            dataset.asDatasetGraph().clear();
+            RDFDataMgr.read(dataset, mainFile); // add to default graph
+            RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
+            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
+            log.info("load RDF into dataset: finished");
+        });
+
+        Txn.executeRead(dataset, () -> {
+            Model result = ValidationUtil.validateModel(dataset.getDefaultModel(), shaclFile, false).getModel();
+            if (result.contains(null, SH.conforms, result.createTypedLiteral(false))) {
+                RDFDataMgr.write(System.out, result, Lang.TURTLE);
+            } else {
+                log.info("data validation with SHACL is successful");
+            }
+        });
+
+        log.info("refresh data from the original source is successful");
     }
 
     private void readDataset(String query, Response response) {
