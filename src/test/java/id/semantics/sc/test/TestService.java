@@ -33,15 +33,15 @@ public class TestService {
     @BeforeClass public static void setUp() throws Exception {
         List<String> strings = new ArrayList<>();
         strings.add("-m");
-        strings.add("sample-input/rml/seismic-json.ttl");
+        strings.add("sample-input/rml/music.rml");
         strings.add("-t");
         strings.add("json");
         strings.add("-o");
-        strings.add("sample-input/ontologies/seismic.ttl");
+        strings.add("sample-input/ontologies/music.ttl");
         strings.add("-a");
-        strings.add("https://vownyourdata.zamg.ac.at:9500/api/data?duration=1");
+        strings.add("https://vownyourdata.zamg.ac.at:9820/api/data");
         strings.add("-c");
-        strings.add("sample-input/shacl/seismic-shacl.ttl");
+        strings.add("sample-input/shacl/music-shacl.ttl");
         strings.add("-s");
         Service.main(strings.toArray(new String[0]));
         awaitInitialization();
