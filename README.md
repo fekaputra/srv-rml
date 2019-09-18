@@ -1,6 +1,6 @@
 # srv-rml: exposing API data as read-only SPARQL endpoint
 
-_**Version 1.4.0**_
+_**Version 1.5.0**_
 
 This tool allows users to expose structured data (i.e., JSON, CSV, XML) 
 collected from a REST API to be exposed as SPARQL endpoint. 
@@ -50,7 +50,7 @@ and afterwards execute the resulted "fat-jar" with the following options:
   *  **-t, --type <arg>**,      Input file type (XML, JSON or CSV
   *  **-o, --ontology <arg>**,  Ontology model of the transformed RDF data
   *  **-c, --constraint <arg>**, SHACL constraints file in TURTLE format
-  *  **-s,**                    (Optional) If activated, the transformed data will be persisted in
+  *  **-s,**                    (Experimental) If activated, the transformed data will be persisted in
                                 a TDB storage; otherwise it will be stored in memory
 
 ## A Running example for Seismic data from Semantic Container!
@@ -58,7 +58,7 @@ and afterwards execute the resulted "fat-jar" with the following options:
 A sample working configuration using a semantic container that provides data from [ZAMG](http://zamg.ac.at/) 
 as a backend service would be the following: 
 ```
-java -jar target/srv-rml-1.3.0-SNAPSHOT-jar-with-dependencies.jar \
+java -jar target/srv-rml-1.5.0-SNAPSHOT-jar-with-dependencies.jar \
 	-m "sample-input/rml/seismic-json.ttl" \
 	-a "https://vownyourdata.zamg.ac.at:9500/api/data?duration=1" \
 	-t "json" \
