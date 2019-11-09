@@ -3,7 +3,9 @@ package id.semantics.sc;
 import org.apache.commons.cli.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.http.entity.ContentType;
-import org.apache.jena.fuseki.main.FusekiServer;
+import org.apache.jena.fuseki.geosparql.GeosparqlServer;
+import org.apache.jena.fuseki.system.FusekiLogging;
+import org.apache.jena.geosparql.configuration.GeoSPARQLConfig;
 import org.apache.jena.query.*;
 import org.apache.jena.rdf.model.Model;
 import org.apache.jena.rdf.model.ModelFactory;
@@ -31,16 +33,15 @@ public class Service {
     public static final String REFRESH_PARAM = "r";
 
     private static final Logger log = LoggerFactory.getLogger(Service.class);
-
-    private final FusekiServer fusekiServer;
-    private final String provGraph = "http://w3id.org/semcon/ns/ontology#Provenance";
+    private final GeosparqlServer fusekiServer;
+    //    private final String provGraph = "http://w3id.org/semcon/ns/ontology#Provenance";
     private final String defaultQuery = "SELECT * WHERE {?a ?b ?c} LIMIT 10";
 
-    private final Dataset dataset;
     private final Model shaclFile;
     private final String mappingFile;
     private final String ontologyJsonLD;
     private final String sourceType;
+    private final Dataset dataset;
     private String sourceAPI; // in default, the API is not initialized
 
     public Service(String mappingFile, String ontologyFile, String sourceType, String sourceAPI, String shaclFile,
@@ -71,8 +72,11 @@ public class Service {
             dataset = DatasetFactory.createTxnMem();
         }
 
-        fusekiServer = FusekiServer.create().add("/rdf", dataset).port(3030).build();
+        //        fusekiServer = FusekiServer.create().add("/rdf", dataset).port(3030).build();
+        FusekiLogging.setLogging();
+        fusekiServer = new GeosparqlServer(3030, "rdf", false, dataset, true);
         fusekiServer.start();
+        GeoSPARQLConfig.setupMemoryIndex();
 
         updateDataset(sourceAPI);
     }
