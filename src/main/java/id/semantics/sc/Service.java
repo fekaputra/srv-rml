@@ -13,6 +13,9 @@ import org.apache.jena.riot.Lang;
 import org.apache.jena.riot.RDFDataMgr;
 import org.apache.jena.system.Txn;
 import org.apache.jena.tdb2.TDB2Factory;
+import org.apache.jena.vocabulary.OWL;
+import org.apache.jena.vocabulary.RDFS;
+import org.apache.jena.vocabulary.XSD;
 import org.json.JSONObject;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -153,6 +156,10 @@ public class Service {
         }
     }
 
+    public void stop() {
+        fusekiServer.stop();
+    }
+
     public void establishRoutes() {
         // set port
         port(2806);
@@ -285,7 +292,12 @@ public class Service {
         log.info("refresh data from the original source is started");
 
         // get data from sourceAPI
+
         SimpleResponse simpleResponse = request(api, "GET", "", "");
+        if (simpleResponse.status == 500) {
+            log.warn("source data for updating is not available");
+            return;
+        }
         File tempFile = File.createTempFile("temp", ".tmp");
         FileWriter writer = new FileWriter(tempFile);
         writer.write(simpleResponse.body);
@@ -295,16 +307,25 @@ public class Service {
 
         // transform into RDF
         String mainFile = Transformer.transform(tempFile.getAbsolutePath(), mappingFile, sourceType);
-        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
-        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
+        //        String provenance = Transformer.extractProvenance(tempFile.getAbsolutePath());
+        //        String usagePolicy = Transformer.extractUsagePolicy(tempFile.getAbsolutePath());
         log.info("transform into RDF: finished");
 
         // load into dataset
         Txn.executeWrite(dataset, () -> {
             dataset.asDatasetGraph().clear();
             RDFDataMgr.read(dataset, mainFile); // add to default graph
-            RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
-            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
+
+            dataset.getDefaultModel().setNsPrefix("scs", "http://w3id.org/semcon/ns/seismic#");
+            dataset.getDefaultModel().setNsPrefix("rdf", RDFS.uri);
+            dataset.getDefaultModel().setNsPrefix("xsd", XSD.getURI());
+            dataset.getDefaultModel().setNsPrefix("rdfs", RDFS.getURI());
+            dataset.getDefaultModel().setNsPrefix("owl", OWL.getURI());
+            dataset.getDefaultModel().setNsPrefix("geo", "http://www.opengis.net/ont/geosparql#");
+            dataset.getDefaultModel().setNsPrefix("wgs", "http://www.w3.org/2003/01/geo/wgs84_pos#");
+
+            //            RDFDataMgr.read(dataset, usagePolicy); // automatically create a named graph
+            //            dataset.addNamedModel(provGraph, RDFDataMgr.loadModel(provenance)); // create a named graph for prov
             log.info("load RDF into dataset: finished");
         });
 
