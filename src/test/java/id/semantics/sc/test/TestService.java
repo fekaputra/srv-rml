@@ -27,29 +27,27 @@ import static spark.Spark.stop;
 public class TestService {
     public static final String SERVICE_URL = "http://localhost:2806";
     public static final String FUSEKI_URL = "http://localhost:3030";
-
     private static final Logger log = LoggerFactory.getLogger(TestService.class);
+    private static Service service;
 
     @BeforeClass public static void setUp() throws Exception {
+        
         List<String> strings = new ArrayList<>();
-        strings.add("-m");
-        strings.add("sample-input/rml/music.rml");
-        strings.add("-t");
-        strings.add("json");
-        strings.add("-o");
-        strings.add("sample-input/ontologies/music.ttl");
-        strings.add("-a");
-        strings.add("https://vownyourdata.zamg.ac.at:9820/api/data");
-        strings.add("-c");
-        strings.add("sample-input/shacl/music-shacl.ttl");
-        strings.add("-s");
-        Service.main(strings.toArray(new String[0]));
+        String rml = "sample-input/rml/music.rml";
+        String type = "json";
+        String ontology = "sample-input/ontologies/music.ttl";
+        String data = "https://vownyourdata.zamg.ac.at:9820/api/data";
+        String shacl = "sample-input/shacl/music-shacl.ttl";
+
+        service = new Service(rml, ontology, type, data, shacl, false);
+        service.establishRoutes();
         awaitInitialization();
 
     }
 
     @AfterClass public static void tearDown() throws Exception {
         stop();
+        service.stop();
     }
 
     @Test public void testHello() {
