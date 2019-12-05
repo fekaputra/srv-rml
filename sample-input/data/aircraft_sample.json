@@ -1,0 +1,54 @@
+[
+  {
+    "aircraft_type": "E145",
+    "flight_id": "230534847",
+    "time_depature": "11:11",
+    "company": "HOP",
+    "planned_time_depature": "11:11",
+    "atfm_delay_time": "0",
+    "cobt": "",
+    "eobt": "2019-06-01T11:05:00",
+    "revised_txi_time": "",
+    "last_sent_slot_message": "2019-06-01T09:01:27",
+    "flight_count_option": "N"
+  },
+  {
+    "aircraft_type": "B738",
+    "flight_id": "230538941",
+    "time_depature": "13:13",
+    "company": "IBK",
+    "planned_time_depature": "13:13",
+    "atfm_delay_time": "0",
+    "cobt": "2019-06-01T13:32:00",
+    "eobt": "2019-06-01T13:32:00",
+    "revised_txi_time": "",
+    "last_sent_slot_message": "2019-06-01T13:30:05",
+    "flight_count_option": "N"
+  },
+  {
+    "aircraft_type": "E190",
+    "flight_id": "230527048",
+    "time_depature": "07:07",
+    "company": "FIN",
+    "planned_time_depature": "07:07",
+    "atfm_delay_time": "0",
+    "cobt": "",
+    "eobt": "2019-06-01T07:00:00",
+    "revised_txi_time": "",
+    "last_sent_slot_message": "",
+    "flight_count_option": "N"
+  },
+  {
+    "aircraft_type": "DA42",
+    "flight_id": "230535515",
+    "time_depature": "11:11",
+    "company": "",
+    "planned_time_depature": "11:11",
+    "atfm_delay_time": "0",
+    "cobt": "",
+    "eobt": "2019-06-01T11:30:00",
+    "revised_txi_time": "",
+    "last_sent_slot_message": "",
+    "flight_count_option": "N"
+  }
+]
